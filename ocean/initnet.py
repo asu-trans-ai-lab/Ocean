@@ -40,6 +40,9 @@ class CNode:
 
         self.number_of_expanded_mesonode = 0
 
+        self.activity_type = ''
+        self.is_boundary = False
+
 
 
 class CLink:
@@ -292,6 +295,10 @@ class CInitNet:
                 control_type = node_data.loc[i, 'ctrl_type']
                 node.control_type = int(control_type) if not np.isnan(control_type) else 0
 
+                node.activity_type = node_data.loc[i, 'activity_type']
+                is_boundary = node_data.loc[i, 'is_boundary']
+                if is_boundary == 1: node.is_boundary = True
+
                 if self.coordinate_type == 'm':
                     node.x_coord, node.y_coord = x_coord, y_coord
                 elif self.coordinate_type == 'll':
@@ -333,6 +340,7 @@ class CInitNet:
                 node.x_coord, node.y_coord = utm_x[node_seq_no], utm_y[node_seq_no]
 
         for main_node_id, subnode_list in self.main_node_id_to_subnode_list_dict.items():
+            if len(subnode_list) == 1: continue
             node = CNode()
             node.node_id = self.max_node_id + 1
             node.node_seq_no = self.number_of_nodes

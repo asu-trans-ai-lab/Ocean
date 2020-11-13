@@ -97,10 +97,11 @@ def outputNetworks(macro_net, net_generator,connector_geometry_for_output):
     if not os.path.isdir(macro_net_folder): os.makedirs(macro_net_folder)
     with open(os.path.join(macro_net_folder,'node.csv'), 'w', newline='') as outfile:
         writer = csv.writer(outfile)
-        writer.writerow(['node_id','name','x_coord','y_coord','z_coord','node_type','ctrl_type','zone_id'])
+        writer.writerow(['node_id','name','x_coord','y_coord','z_coord','node_type','ctrl_type','zone_id','activity_type','is_boundary'])
         for node in macro_net.node_list:
             if not node.valid: continue
-            line = [node.node_id, node.name, node.x_coord_original_type, node.y_coord_original_type, '', '','', node.zone_id]
+            is_boundary = 1 if node.is_boundary else 0
+            line = [node.node_id, node.name, node.x_coord_original_type, node.y_coord_original_type, '', '','', node.zone_id,node.activity_type,is_boundary]
             writer.writerow(line)
     with open(os.path.join(macro_net_folder,'link.csv'), 'w', newline='') as outfile:
         writer = csv.writer(outfile)
@@ -129,10 +130,11 @@ def outputNetworks(macro_net, net_generator,connector_geometry_for_output):
     if not os.path.isdir(meso_net_folder): os.makedirs(meso_net_folder)
     with open(os.path.join(meso_net_folder,'node.csv'), 'w', newline='') as outfile:
         writer = csv.writer(outfile)
-        writer.writerow(['node_id','zone_id','x_coord','y_coord','original_node_id'])
+        writer.writerow(['node_id','zone_id','x_coord','y_coord','original_node_id','activity_type','is_boundary'])
         for mesonode in net_generator.meso_node_list:
             if not mesonode.valid: continue
-            line = [mesonode.node_id, mesonode.zone_id,mesonode.x_coord_original_type, mesonode.y_coord_original_type, mesonode.original_node_id]
+            is_boundary = 1 if mesonode.is_boundary else 0
+            line = [mesonode.node_id, mesonode.zone_id,mesonode.x_coord_original_type, mesonode.y_coord_original_type, mesonode.original_node_id,mesonode.activity_type,is_boundary]
             writer.writerow(line)
 
     with open(os.path.join(meso_net_folder,'link.csv'), 'w', newline='') as outfile:

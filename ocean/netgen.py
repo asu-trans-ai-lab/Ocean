@@ -204,8 +204,6 @@ class CNetGenerator:
                 down_lane_index = down_lane_index_start + j
                 up_micro_node_id = upstream_mesolink.micro_node_list[up_lane_index][-1]
                 down_micro_node_id = downstream_mesolink.micro_node_list[down_lane_index][0]
-                # downstream_mesolink.micro_node_list[down_lane_index][0] = up_micro_node_id
-                # g_micro_node_list[g_micro_node_id_to_seq_no_dict[down_micro_node_id]].valid = False
 
                 upstream_mesolink.micro_node_list[up_lane_index][-1] = down_micro_node_id
                 self.micro_node_list[self.micro_node_id_to_seq_no_dict[up_micro_node_id]].valid = False
@@ -382,6 +380,7 @@ class CNetGenerator:
                     link.length_of_cut_upstream = self.length_of_cut[ii]
                     link.length_of_cut_downstream = link.length_of_short_cut
             else:
+
                 length_found = False
                 ii = 0
                 for i in range(link.number_of_lanes_list[-1], -1, -1):
@@ -392,6 +391,7 @@ class CNetGenerator:
                 if not length_found:
                     print(f'Unable to initialize link {link.link_id}')
                     exitProgram()
+
                 link.length_of_cut_upstream = self.length_of_cut[ii]
                 link.length_of_cut_downstream = min(downstream_max_cut, self.length_of_cut[ii])
 
@@ -432,6 +432,8 @@ class CNetGenerator:
                 upstream_node.y_coord = link.cutted_geometry_list[0][0][1]
                 upstream_node.original_node_id = link.from_node_id
                 upstream_node.zone_id = link.from_node.zone_id
+                upstream_node.activity_type = link.from_node.activity_type
+                upstream_node.is_boundary = link.from_node.is_boundary
                 self.meso_node_list.append(upstream_node)
                 self.number_of_meso_nodes += 1
                 link.from_node.number_of_expanded_mesonode += 1
@@ -450,6 +452,8 @@ class CNetGenerator:
                     if section_no == link.cutted_number_of_sections - 1:
                         downstream_node.original_node_id = link.to_node_id
                         downstream_node.zone_id = link.to_node.zone_id
+                        downstream_node.activity_type = link.to_node.activity_type
+                        downstream_node.is_boundary = link.to_node.is_boundary
                     self.meso_node_list.append(downstream_node)
                     self.number_of_meso_nodes += 1
                     link.to_node.number_of_expanded_mesonode += 1
@@ -564,8 +568,7 @@ class CNetGenerator:
                     to_x_coord = (down_start_lane_coord[0] + down_end_lane_coord[0]) / 2
                     to_y_coord = (down_start_lane_coord[1] + down_end_lane_coord[1]) / 2
                 except IndexError:
-                    print(
-                        '  other error'.format(mvmt.movement_id))
+                    print('  other error'.format(mvmt.movement_id))
                     continue
 
                 mesolink.geometry_list = [(from_x_coord, from_y_coord), (to_x_coord, to_y_coord)]
