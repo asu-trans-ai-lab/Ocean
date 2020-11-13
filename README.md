@@ -3,11 +3,21 @@
 **Open-source tool for creating Cell-based (microscopic) and mEsoscopic and
 mAcro Networks**
 
-![](media/90b78556875221b36877fd4aaa4bd534.png)
+![](media/6cde348bca3d0bc69f85d4a58885d168.png)
+
+**Development Support:**
+
+Ph.D. Student: Jiawei (Jay) Lu (jiaweil9\@asu.edu)
+
+Dr. Xuesong (Simon) Zhou (xzhou74\@asu.edu)
+
+School of Sustainable Engineering and the Built Environment
+
+Arizona State University
 
 >   **Overview of work flow**
 
-![](media/39f9e02da02eb1bfd151d49785de4ce5.png)
+![](media/3f77bda1f2671620501e82773cd6c171.png)
 
 **Step 1: Obtain macroscopic network data**
 
@@ -17,7 +27,7 @@ OSM2GMNS tool also generates important information such as the mapping between
 “model nodes” and “main signal nodes”, which is recorded in file
 complex_intersection.csv and segment.csv.
 
-![](media/464ba4527ff42e3336526e26d7750e4f.png)
+![](media/c23af3508c7b8ef6badeb224ada877f7.png)
 
 As shown above, ensure the following files are located in the “consolidated”
 folder:
@@ -38,7 +48,7 @@ Go to the github website of OCEAN,
 
 download the source codes insides the “ocean” folder, and open main.py file.
 
-![](media/e7205cbc09fa1fd0277e8ed2db445623.png)
+![](media/be253311dacfb883a79373d0b3958dcf.png)
 
 **Step 3: Configure network-related parameters**
 
@@ -77,23 +87,23 @@ Run the OCEAN program to generate three sets of file corresponding to
 macroscopic, mesoscopic, and microscopic network in the folders shown below.
 Each folder should have at least node.csv and link.csv files.
 
-![](media/c4b592590d3cae79d354c1218051a785.png)
+![](media/e3e35375387286c8e03dc74ba7f59308.png)
 
-![](media/40eec57ebd734e37616c6685e6660ec2.png)
+![](media/61f57110b4ca239810b30a10e8a92e65.png)
 
 **Step 5: Visualize networks in NeXTA**
 
 You can open and visualize the traffic network project (node.csv in three folds)
 in NEXTA .
 
-![](media/4c76afcb2efa0f11bfd7d9f3f563a569.png)
+![](media/c98e66b6dd5b11086075afe6cc780728.png)
 
 Use menu as shown below, then set the window layout to show three levels of
 networks, through menu items “tile vertically” and “Synchronized Display” .
 
-![](media/83278fabee520ff57eadda640ec2e38e.png)
+![](media/5dc08773c5e25d492d4a1c2bdf93ce25.png)
 
-![](media/741c4b6b714c1a711f410ba70efdfc5f.png)
+![](media/c978ac6255ab69ab6ead2a4bbc8d7ade.png)
 
 The potential next step is to manage OD zone structure and in the NeXTA tool and
 perform traffic assignment and simulation using DTALite for transportation
