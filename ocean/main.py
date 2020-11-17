@@ -3,6 +3,9 @@
 # @create date   2020-04-16 16:27:39
 # @desc          [main file]
 
+# todo: segment file
+
+
 
 import initnet
 import netgen
@@ -11,7 +14,7 @@ from outputnet import *
 
 
 
-working_directory = r'C:\Users\Administrator\Desktop\asu\consolidated'
+working_directory = r'C:\Users\Administrator\Dropbox (ASU)\Work\CAVLite\OSM2GMNS\V2\maps\asu\consolidated'
 
 coordinate_type = 'll'                          # m: meter, ll: latlon, f: feet
 geometry_source = 'l'                           # n: none, l: link file, g: geomerey file

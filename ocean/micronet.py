@@ -20,6 +20,9 @@ class CMicroNode:
         self.x_coord_original_type = 0.0
         self.y_coord_original_type = 0.0
 
+        self.activity_type = ''
+        self.is_boundary = False
+
 
 class CMicroLink:
     def __init__(self):

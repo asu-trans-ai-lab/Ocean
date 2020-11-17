@@ -159,10 +159,11 @@ def outputNetworks(macro_net, net_generator,connector_geometry_for_output):
     if not os.path.isdir(micro_net_folder): os.makedirs(micro_net_folder)   
     with open(os.path.join(micro_net_folder,'node.csv'), 'w', newline='') as outfile:
         writer = csv.writer(outfile)
-        writer.writerow(['node_id','x_coord','y_coord','meso_link_id','lane_no'])
+        writer.writerow(['node_id','x_coord','y_coord','meso_link_id','lane_no','activity_type','is_boundary'])
         for micronode in net_generator.micro_node_list:
             if not micronode.valid: continue
-            line = [micronode.node_id, micronode.x_coord_original_type, micronode.y_coord_original_type, micronode.meso_link_id, micronode.lane_no]
+            is_boundary = 1 if micronode.is_boundary else 0
+            line = [micronode.node_id, micronode.x_coord_original_type, micronode.y_coord_original_type, micronode.meso_link_id, micronode.lane_no,micronode.activity_type,is_boundary]
             writer.writerow(line)
 
     with open(os.path.join(micro_net_folder,'link.csv'), 'w', newline='') as outfile:

@@ -10,6 +10,7 @@ from exitprogram import *
 import re
 import numpy as np
 from coordconvertor import Convertor
+import locale
 
 
 class CNode:
@@ -105,9 +106,6 @@ class CLink:
         self.cutted_number_of_lanes_list = self.number_of_lanes_list.copy()
         self.cutted_lanes_change_list = self.lanes_change_list.copy()
 
-        # if self.link_id == '146777_AB':
-        #     a = 1
-
         for i in range(1, len(self.cutted_breakpoint_list)):
             if self.cutted_breakpoint_list[i] > self.length_of_cut_upstream: break
         del self.cutted_breakpoint_list[0:i]
@@ -154,7 +152,23 @@ class CLink:
             last_point_coord = (new_x,new_y)
 
         for i in range(len(self.cutted_breakpoint_list)-1):
-            self.cutted_geometry_list.append([cutted_geometry_list_temp[i][-1]]+cutted_geometry_list_temp[i+1])
+            cutted_geometry = [cutted_geometry_list_temp[i][-1]]+cutted_geometry_list_temp[i+1]
+            number_of_geometry_points = len(cutted_geometry)
+            point_status = [True] * number_of_geometry_points
+            for j in range(1,number_of_geometry_points-1):
+                if point_status[j-1]:
+                    if ((cutted_geometry[j-1][0] - cutted_geometry[j][0])**2 + (cutted_geometry[j-1][1] - cutted_geometry[j][1])**2)**0.5:
+                        point_status[j] = False
+                        continue
+                if ((cutted_geometry[j+1][0] - cutted_geometry[j][0])**2 + (cutted_geometry[j+1][1] - cutted_geometry[j][1])**2)**0.5:
+                    point_status[j] = False
+
+            cutted_geometry_new = []
+            for point_no, geometry_point in enumerate(cutted_geometry):
+                if point_status[point_no]:
+                    cutted_geometry_new.append(geometry_point)
+
+            self.cutted_geometry_list.append(cutted_geometry_new)
 
     def Initialization(self):
         self.cutLink()
@@ -270,14 +284,17 @@ class CInitNet:
         self.link_key_to_seq_no_dict = {}
 
         self.main_node_id_to_subnode_list_dict = {}     # to original subnodes
-        # self.main_node_id_to_node_dict = {}          # to the new created node
         self.main_node_control_type_dict = {}
 
     def readInputData(self):
         print('Reading input data...')
+        local_encoding = locale.getdefaultlocale()
         # --------------------Node----------------------#
         print('  reading node.csv')
-        node_data = pd.read_csv(os.path.join(self.working_directory,'node.csv'))
+        try:
+            node_data = pd.read_csv(os.path.join(self.working_directory,'node.csv'))
+        except:
+            node_data = pd.read_csv(os.path.join(self.working_directory,'node.csv'),encoding=local_encoding[1])
         self.number_of_nodes = len(node_data)
         coord_list = []
 
@@ -334,6 +351,8 @@ class CInitNet:
         if self.coordinate_type == 'll':
             coord_array = np.array(coord_list)
             lat_central, lon_central = coord_array[:,0].mean(), coord_array[:,1].mean()
+            # lat_central, lon_central = 33.382763733779406, -111.93024641666405
+
             self.coord_convertor = Convertor(lat_central, lon_central)
             utm_x, utm_y = self.coord_convertor.from_latlon(coord_array[:,0], coord_array[:,1])
             for node_seq_no, node in enumerate(self.node_list):
@@ -358,7 +377,10 @@ class CInitNet:
 
         # ---------------------Link-----------------------#
         print('  reading link.csv')
-        link_data = pd.read_csv(os.path.join(self.working_directory,'link.csv'), encoding='gb18030')
+        try:
+            link_data = pd.read_csv(os.path.join(self.working_directory, 'link.csv'))
+        except:
+            link_data = pd.read_csv(os.path.join(self.working_directory, 'link.csv'),encoding=local_encoding[1])
         self.number_of_links = 0
 
         if 'TMC' in link_data.columns: self.TMC_flag = True
@@ -404,10 +426,20 @@ class CInitNet:
                     print('speed_unit must be chosen from mph, kph')
                     exitProgram()
 
-                link.number_of_lanes = int(link_data.loc[i,'lanes'])
-                if link.number_of_lanes < 1:
-                    print(f'number of lanes of link {link.link_id} is invalid')
-                    exitProgram()
+                number_of_lanes = link_data.loc[i,'lanes']
+                if np.isnan(number_of_lanes):
+                    link.number_of_lanes = 1
+                    print(f'warning: lanes information is missing on link {link.link_id}, default value 1 is used')
+                else:
+                    try:
+                        number_of_lanes_int = int(link_data.loc[i,'lanes'])
+                    except ValueError:
+                        print(f'warning: unable to parse lanes information of link {link.link_id}, default value 1 is used')
+                        number_of_lanes_int = 1
+                    if number_of_lanes_int < 1:
+                        print(f'lanes of link {link.link_id} is less than 1, , default value 1 is used')
+                        number_of_lanes_int = 1
+                    link.number_of_lanes = number_of_lanes_int
 
                 link_length = float(link_data.loc[i,'length'])
                 if self.unit_of_length == 'm':
@@ -424,8 +456,6 @@ class CInitNet:
                 if self.TMC_flag:
                     TMC = link_data.loc[i,'TMC']
                     if TMC == TMC: link.TMC = TMC
-
-
             except KeyError as e:
                 print('Cannot find {} in the link.csv. Press Enter key to exit'.format(e.args[0]))
                 exitProgram()
@@ -433,9 +463,7 @@ class CInitNet:
             link.coordinate_type = self.coordinate_type
             link.link_seq_no = self.number_of_links
             link.link_key = '{}_{}'.format(link.from_node_id,link.to_node_id)
-            # link.from_node = self.node_list[self.node_id_to_seq_no_dict[link.from_node_id]]
             link.from_node.m_outgoing_link_list.append(link.link_id)
-            # link.to_node = self.node_list[self.node_id_to_seq_no_dict[link.to_node_id]]
             link.to_node.m_incoming_link_list.append(link.link_id)
 
             self.link_list.append(link)
@@ -456,7 +484,10 @@ class CInitNet:
         movement_file = os.path.join(self.working_directory,'movement.csv')
         if os.path.isfile(movement_file):
             print('  reading movement.csv')
-            movement_data = pd.read_csv(movement_file)
+            try:
+                movement_data = pd.read_csv(movement_file)
+            except:
+                movement_data = pd.read_csv(movement_file,encoding=local_encoding[1])
             movement_data = movement_data.astype({'ib_lane':'str', 'ob_lane':'str'})
 
             for i in range(len(movement_data)):
@@ -485,7 +516,6 @@ class CInitNet:
                 self.number_of_movements += 1
                 self.link_list[self.link_id_to_seq_no_dict[mvmt.ib_link_id]].mvmt_id_list.append(mvmt.movement_id)
 
-
         # identify nodes do not need movements
         for node in self.node_list:
             if node.main_node_id is not None: continue
@@ -493,7 +523,6 @@ class CInitNet:
             if not node.valid: continue
 
             # TO DO: centroid node
-
             if len(node.m_incoming_link_list) == 1 and len(node.m_outgoing_link_list) >= 1:
                 # one imcoming link
                 ib_link = self.link_list[self.link_id_to_seq_no_dict[node.m_incoming_link_list[0]]]
@@ -537,13 +566,16 @@ class CInitNet:
         segment_file = os.path.join(self.working_directory,'segment.csv')
         if os.path.isfile(segment_file):
             print('  reading segment.csv')
-            segment_data = pd.read_csv(os.path.join(self.working_directory,'segment.csv'))
+            try:
+                segment_data = pd.read_csv(os.path.join(self.working_directory,'segment.csv'))
+            except:
+                segment_data = pd.read_csv(os.path.join(self.working_directory, 'segment.csv'), encoding=local_encoding[1])
 
             for i in range(len(segment_data)):
                 segment = CSegment()
                 try:
                     segment.segment_id = int(segment_data.loc[i,'segment_id'])
-                    segment.road_link_id = segment_data.loc[i,'road_link_id']
+                    segment.road_link_id = segment_data.loc[i,'link_id']
                     segment.ref_node_id = int(segment_data.loc[i,'ref_node_id'])
                     start_lr, end_lr = float(segment_data.loc[i,'start_lr']), float(segment_data.loc[i,'end_lr'])
 
@@ -563,8 +595,8 @@ class CInitNet:
                     segment.speed_limit = segment_data.loc[i,'free_speed']
                     segment.l_lanes_added = int(segment_data.loc[i,'l_lanes_added'])
                     segment.r_lanes_added = int(segment_data.loc[i,'r_lanes_added'])
-                except KeyError:
-                    print('Please check field names in segment.csv. Press Enter key to exit')
+                except KeyError as e:
+                    print('Cannot find {} in the segment.csv. Press Enter key to exit'.format(e.args[0]))
                     exitProgram()
 
                 if segment.road_link_id not in self.link_id_to_seq_no_dict.keys():
@@ -579,7 +611,10 @@ class CInitNet:
         # ------------------Geometry--------------------#
         if self.geometry_source == 'g':
             print('  reading link_geometry.csv')
-            geometry_data = pd.read_csv(os.path.join(self.working_directory,'link_geometry.csv'))
+            try:
+                geometry_data = pd.read_csv(os.path.join(self.working_directory,'link_geometry.csv'))
+            except:
+                geometry_data = pd.read_csv(os.path.join(self.working_directory, 'link_geometry.csv'), encoding=local_encoding[1])
             self.number_of_geometries = len(geometry_data)
 
             for i in range(self.number_of_geometries):
@@ -732,8 +767,15 @@ class CInitNet:
                     ut = offset_coord_list_temp[i][1]
                     df = offset_coord_list_temp[i + 1][0]
                     dt = offset_coord_list_temp[i + 1][1]
-                    if ut == df:
-                        link.geometry_list.append(ut)
+
+                    # if ut == df:
+                    #     link.geometry_list.append(ut)
+
+                    # not using strict equal here to avoid precision issues
+                    d_utdf = ((ut[0] - df[0])**2 + ((ut[1] - df[1])**2))**0.5
+                    if d_utdf < 0.01:
+                        x, y = (ut[0] + df[0])*0.5, (ut[1] + df[1])*0.5
+                        link.geometry_list.append((x, y))
                     else:
                         A = [[ut[1] - uf[1], uf[0] - ut[0]], [dt[1] - df[1], df[0] - dt[0]]]
                         b = [(ut[1] - uf[1]) * uf[0] - (ut[0] - uf[0]) * uf[1],
@@ -782,15 +824,12 @@ class CInitNet:
             node.y_coord = (from_node.y_coord + to_node.y_coord) * 0.5
             node.node_seq_no = self.number_of_nodes
 
-            # node.m_outgoing_link_list = from_node.m_outgoing_link_list + to_node.m_outgoing_link_list
-            # node.m_incoming_link_list = from_node.m_incoming_link_list + to_node.m_incoming_link_list
-
-            if (from_node.zone_id != -1) and (to_node.zone_id != -1):
+            if (from_node.zone_id is not None) and (to_node.zone_id is not None):
                 print('    warning: from node and to node of short link {} both have associated traffic zones, only from node zone is kept'.format(link.link_id))
                 node.zone_id = from_node.zone_id
-            elif (from_node.zone_id != -1) and (to_node.zone_id == -1):
+            elif (from_node.zone_id is not None) and (to_node.zone_id is None):
                 node.zone_id = from_node.zone_id
-            elif (from_node.zone_id == -1) and (to_node.zone_id != -1):
+            elif (from_node.zone_id is None) and (to_node.zone_id is not None):
                 node.zone_id = to_node.zone_id
 
             for link_id in from_node.m_outgoing_link_list:
@@ -834,15 +873,11 @@ class CInitNet:
                 ib_link = self.link_list[self.link_id_to_seq_no_dict[node.m_incoming_link_list[0]]]
                 ob_link = self.link_list[self.link_id_to_seq_no_dict[node.m_outgoing_link_list[0]]]
 
-                # if ib_link.number_of_lanes != ob_link.number_of_lanes: continue
-
                 node.valid = False
                 ib_link.valid = False
                 ob_link.valid = False
 
                 link = CLink()
-
-
                 link.name = ib_link.name
                 link.link_id = 'L{}'.format(self.number_of_combined_links)
                 link.link_seq_no = self.number_of_links
@@ -886,13 +921,10 @@ class CInitNet:
                     link.breakpoint_list = new_ib_link_breakpoint_list + new_ob_link_breakpoint_list_con[1:]
                     link.number_of_lanes_list = ib_link.number_of_lanes_list + ob_link.number_of_lanes_list
 
-
                 link.max_number_of_lanes = max(ib_link.max_number_of_lanes, ob_link.max_number_of_lanes)
                 link.breakpoint_list = []
                 link.number_of_lanes_list = []
                 link.lanes_change_list = []
-
-
 
                 self.number_of_combined_links += 1
                 self.number_of_links += 1

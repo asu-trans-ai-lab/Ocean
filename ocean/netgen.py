@@ -44,6 +44,8 @@ class CNetGenerator:
     
     def createMicroNetForNormalLink(self, link):
 
+        first_micro_node = True
+
         for meso_link_id in link.meso_link_id_list:
             mesolink = self.meso_link_list[self.meso_link_id_to_seq_no_dict[meso_link_id]]
             original_number_of_lanes = mesolink.number_of_lanes_of_original_link
@@ -83,6 +85,11 @@ class CNetGenerator:
                     micronode.y_coord = mesolink.section_lane_coord_list[section_no][i][0][1]
                     micronode.meso_link_id = mesolink.link_id
                     micronode.lane_no = i + 1
+
+                    if first_micro_node:
+                        micronode.activity_type = link.from_node.activity_type
+                        micronode.is_boundary = link.from_node.is_boundary
+                        first_micro_node = False
 
                     self.micro_node_list.append(micronode)
                     self.micro_node_id_to_seq_no_dict[micronode.node_id] = micronode.node_seq_no
