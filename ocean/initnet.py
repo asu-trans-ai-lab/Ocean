@@ -11,6 +11,7 @@ import re
 import numpy as np
 from coordconvertor import Convertor
 import locale
+from settings import *
 
 
 class CNode:
@@ -23,7 +24,7 @@ class CNode:
         self.lon = 0.0
         self.zone_id = None
         self.node_seq_no = 0
-        self.control_type = ''
+        self.control_type = None            # int
         self.m_outgoing_link_list = []
         self.m_incoming_link_list = []
 
@@ -157,10 +158,10 @@ class CLink:
             point_status = [True] * number_of_geometry_points
             for j in range(1,number_of_geometry_points-1):
                 if point_status[j-1]:
-                    if ((cutted_geometry[j-1][0] - cutted_geometry[j][0])**2 + (cutted_geometry[j-1][1] - cutted_geometry[j][1])**2)**0.5:
+                    if ((cutted_geometry[j-1][0] - cutted_geometry[j][0])**2 + (cutted_geometry[j-1][1] - cutted_geometry[j][1])**2)**0.5 < 0.1:
                         point_status[j] = False
                         continue
-                if ((cutted_geometry[j+1][0] - cutted_geometry[j][0])**2 + (cutted_geometry[j+1][1] - cutted_geometry[j][1])**2)**0.5:
+                if ((cutted_geometry[j+1][0] - cutted_geometry[j][0])**2 + (cutted_geometry[j+1][1] - cutted_geometry[j][1])**2)**0.5 < 0.1:
                     point_status[j] = False
 
             cutted_geometry_new = []
@@ -241,7 +242,8 @@ class CGeometry:
 
 
 class CInitNet:
-    def __init__(self, working_directory, coordinate_type, geometry_source, unit_of_length, segment_unit, speed_unit, link_type_list, connector_type, min_link_length, comb_links, width_of_lane):
+    def __init__(self, working_directory, coordinate_type, geometry_source, unit_of_length, segment_unit, speed_unit,
+                 link_type_list, connector_type, min_link_length, comb_links, width_of_lane):
         self.working_directory = working_directory
         self.coordinate_type = coordinate_type
         self.geometry_source = geometry_source
@@ -286,6 +288,47 @@ class CInitNet:
         self.main_node_id_to_subnode_list_dict = {}     # to original subnodes
         self.main_node_control_type_dict = {}
 
+        self.checkArguments()
+
+    def checkArguments(self):
+        if not os.path.exists(self.working_directory):
+            print(f'ERROR: {self.working_directory} is not a valid directory. Press Enter key to exit')
+            exitProgram()
+        if self.coordinate_type not in ['m','ll','f']:
+            print('ERROR: coordinate_type must be chosen from m,ll,f')
+            exitProgram()
+        if self.geometry_source not in ['n','l','g']:
+            print('ERROR: geometry_source must be chosen from n,l,g')
+            exitProgram()
+        if self.unit_of_length not in ['m','km','mi','f']:
+            print('unit_of_length must be chosen from m,km,mi,f')
+            exitProgram()
+        if self.segment_unit not in ['m','km','mi','f']:
+            print('segment_unit must be chosen from m,km,mi,f')
+            exitProgram()
+        if self.speed_unit not in ['mph','kph']:
+            print('speed_unit must be chosen from mph,kph')
+            exitProgram()
+        if self.speed_unit not in ['mph','kph']:
+            print('speed_unit must be chosen from mph,kph')
+            exitProgram()
+        if not isinstance(self.link_type_list,list):
+            print('argument link_type_list must be a list')
+            exitProgram()
+        if not (isinstance(self.min_link_length,int) or isinstance(self.min_link_length,float)):
+            print('min_link_length must be an integer and float')
+            exitProgram()
+        if not isinstance(self.comb_links,bool):
+            print('comb_links must be a bool')
+            exitProgram()
+        if not (isinstance(self.width_of_lane,int) or isinstance(self.width_of_lane,float)):
+            print('width_of_lane must be an integer and float')
+            exitProgram()
+        if self.width_of_lane <= 0:
+            print('width_of_lane must be positive')
+            exitProgram()
+
+
     def readInputData(self):
         print('Reading input data...')
         local_encoding = locale.getdefaultlocale()
@@ -295,42 +338,64 @@ class CInitNet:
             node_data = pd.read_csv(os.path.join(self.working_directory,'node.csv'))
         except:
             node_data = pd.read_csv(os.path.join(self.working_directory,'node.csv'),encoding=local_encoding[1])
+
+        for field in necessary_fields_node:
+            if field not in node_data.columns:
+                print(f'Cannot find {field} in the node.csv. Press Enter key to exit')
+                exitProgram()
+        field_existence_dict = {}
+        for field in optional_fields_node:
+            field_existence_dict[field] = True if field in node_data.columns else False
+
         self.number_of_nodes = len(node_data)
         coord_list = []
 
         for i in range(self.number_of_nodes):
             node = CNode()
-            try:
-                node.node_id = int(node_data.loc[i,'node_id'])
-                name = node_data.loc[i,'name']
-                node.name = name if not np.isnan(name) else ''
-                x_coord = node_data.loc[i,'x_coord']
-                y_coord = node_data.loc[i,'y_coord']
+            node.node_id = int(node_data.loc[i, 'node_id'])
+            x_coord = node_data.loc[i, 'x_coord']
+            y_coord = node_data.loc[i, 'y_coord']
+            if self.coordinate_type == 'm':
+                node.x_coord, node.y_coord = x_coord, y_coord
+            elif self.coordinate_type == 'll':
+                node.lat, node.lon = y_coord, x_coord
+                coord_list.append([y_coord, x_coord])
+            elif self.coordinate_type == 'f':
+                node.x_coord, node.y_coord = x_coord * 0.3048, y_coord * 0.3048
+
+            if field_existence_dict['name']:
+                name = node_data.loc[i, 'name']
+                if name == name: node.name = name
+            if field_existence_dict['zone_id']:
                 zone_id = node_data.loc[i, 'zone_id']
-                if not np.isnan(zone_id): node.zone_id = int(zone_id)
-
+                if zone_id == zone_id:
+                    try:
+                        node.zone_id = int(zone_id)
+                    except ValueError:
+                        print(f'WARNING: cannot convert the zone_id of node {node.node_id} to an integer')
+            if field_existence_dict['ctrl_type']:
                 control_type = node_data.loc[i, 'ctrl_type']
-                node.control_type = int(control_type) if not np.isnan(control_type) else 0
-
-                node.activity_type = node_data.loc[i, 'activity_type']
+                if control_type == control_type:
+                    try:
+                        node.control_type = int(control_type)
+                    except ValueError:
+                        print(f'WARNING: cannot convert the ctrl_type of node {node.node_id} to an integer')
+            if field_existence_dict['activity_type']:
+                activity_type = node_data.loc[i, 'activity_type']
+                if activity_type == activity_type: node.activity_type = activity_type
+            if field_existence_dict['is_boundary']:
                 is_boundary = node_data.loc[i, 'is_boundary']
-                if is_boundary == 1: node.is_boundary = True
+                if is_boundary == is_boundary:
+                    node.is_boundary = True if is_boundary else False
+            if field_existence_dict['main_node_id']:
+                main_node_id = node_data.loc[i, 'main_node_id']
+                if main_node_id == main_node_id:
+                    try:
+                        node.main_node_id = int(main_node_id)
+                    except ValueError:
+                        print(f'WARNING: cannot convert the main_node_id of node {node.node_id} to an integer')
 
-                if self.coordinate_type == 'm':
-                    node.x_coord, node.y_coord = x_coord, y_coord
-                elif self.coordinate_type == 'll':
-                    node.lat, node.lon = y_coord, x_coord
-                    coord_list.append([y_coord, x_coord])
-                elif self.coordinate_type == 'f':
-                    node.x_coord, node.y_coord = x_coord * 0.3048, y_coord * 0.3048
-                else:
-                    print('coordinate_type must be chosen from m,ll,f')
-                    exitProgram()
-
-                main_node_id = node_data.loc[i,'main_node_id']
-                if not np.isnan(main_node_id):
-                    node.main_node_id = main_node_id
-                    if main_node_id in self.main_node_id_to_subnode_list_dict.keys():
+                    if node.main_node_id in self.main_node_id_to_subnode_list_dict.keys():
                         if self.main_node_control_type_dict[main_node_id] != node.control_type:
                             print('Different control types detected at main node {}'.format(main_node_id))
                             exitProgram()
@@ -338,10 +403,6 @@ class CInitNet:
                     else:
                         self.main_node_id_to_subnode_list_dict[main_node_id] = [node]
                         self.main_node_control_type_dict[main_node_id] = node.control_type
-
-            except KeyError as e:
-                print(f'Cannot find {e.args[0]} in the node.csv. Press Enter key to exit')
-                exitProgram()
 
             node.node_seq_no = i
             self.node_list.append(node)
@@ -427,7 +488,7 @@ class CInitNet:
                     exitProgram()
 
                 number_of_lanes = link_data.loc[i,'lanes']
-                if np.isnan(number_of_lanes):
+                if number_of_lanes != number_of_lanes:
                     link.number_of_lanes = 1
                     print(f'warning: lanes information is missing on link {link.link_id}, default value 1 is used')
                 else:
@@ -773,7 +834,7 @@ class CInitNet:
 
                     # not using strict equal here to avoid precision issues
                     d_utdf = ((ut[0] - df[0])**2 + ((ut[1] - df[1])**2))**0.5
-                    if d_utdf < 0.01:
+                    if d_utdf < 0.1:
                         x, y = (ut[0] + df[0])*0.5, (ut[1] + df[1])*0.5
                         link.geometry_list.append((x, y))
                     else:

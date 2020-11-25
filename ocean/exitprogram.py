@@ -8,4 +8,4 @@ import sys
 
 def exitProgram():
     input()
-    sys.exit(1)
+    sys.exit()

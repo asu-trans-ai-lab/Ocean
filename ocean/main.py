@@ -14,11 +14,11 @@ from outputnet import *
 
 
 
-working_directory = r'C:\Users\Administrator\Dropbox (ASU)\Work\CAVLite\OSM2GMNS\V2\maps\asu\consolidated'
+working_directory = r'consolidated'
 
 coordinate_type = 'll'                          # m: meter, ll: latlon, f: feet
-geometry_source = 'l'                           # n: none, l: link file, g: geomerey file
-unit_of_length = 'm'                           # m: meter, km:kilometer, mi: mile, f: feet
+geometry_source = 'l'                           # n: none, l: link file, g: geometry file
+unit_of_length = 'm'                           # m: meter, km:kilometer, mi: mile, f: feet      md:mile
 segment_unit = 'm'                              # m: meter, km:kilometer, mi: mile, f: feet
 speed_unit = 'mph'                              # mph: mile per hour, kph: kilometer per hour
 
@@ -40,8 +40,7 @@ width_of_lane = 3.5
 
 if __name__ == "__main__":
     macro_net = initnet.CInitNet(working_directory, coordinate_type, geometry_source, unit_of_length, segment_unit, speed_unit,
-                                 link_type_list, connector_type,
-                                 min_link_length, comb_links, width_of_lane)
+                                 link_type_list, connector_type, min_link_length, comb_links, width_of_lane)
     macro_net.readInputData()
     macro_net.initialization()
     net_generator = netgen.CNetGenerator(macro_net, length_of_cell, length_of_cut, width_of_lane, auto_connection, cells_in_queue_area)
