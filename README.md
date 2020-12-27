@@ -1,7 +1,7 @@
-**OCEAN for Multi-Resolution Network Modeling:**
+**Net2Cell for Multi-Resolution Network Modeling:**
 
-**Open-source tool for creating Cell-based (microscopic) and mEsoscopic and
-mAcro Networks**
+**Open-source tool for creating Cell-based (microscopic) and mesoscopic and
+macro Networks**
 
 ![](media/6cde348bca3d0bc69f85d4a58885d168.png)
 
